@@ -1,5 +1,7 @@
 from x1 import ent
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Union
+
+Number = Union[int, float]
 
 class Actor(ent.Entity):
 	def __init__(self, parent, *components: set[ent.Property]) -> None:
@@ -63,12 +65,52 @@ class CompoundAction(Action):
 		for action in self:
 			action.take(target)
 
+class Directive:
+	def __init__(self, target: Actor, **properties: dict[str, any]) -> None:
+		self.target = target
+		self._desiredPropertiesDict = properties
+		self.desiredProperties = [
+			ent.Property.make(key, self._desiredPropertiesDict[key]) 
+			for key in self._desiredPropertiesDict.keys()
+		]
+		self.ideal = target.child(new=self.desiredProperties)
+		self.best = ~ideal
+
+		self.completed = False
+
+		self.actionsTaken: list[Action] = []
+
+	def __mod__(self, other: object) -> Number:
+		return self.ideal % other.ideal
+
+	def completion(self) -> Number:
+		if self.completed:
+			return 1
+		comp = (self.target % self.ideal) / self.best
+
+	def complete(self) -> None:
+		self.completed = True
+
+	def addAction(self, action: Action) -> None:
+		self.actionsTaken.append(action)
+
 class InfiniteAbstractionCore:
-	def __init__(self, *basicActions: set[Action]) -> None:
+	def __init__(self, *basicActions: set[Action], directive: Directive=None) -> None:
 		self.actions = list(basicActions)
+		self.directives = [directive]
+		self.completedDirectives: list[Directive]
+
+	def assign(self, directive: Directive) -> None:
+		if directive not in self.directives:
+			self.directives.append(directive)
+
+	def completion(self) -> Number:
+		return sum([directive.completion() for directive in self.directives]) / len(self.directives)
 
 	def generateNewAction(self, *actions: set[Action]) -> CompoundAction:
 		ca = CompoundAction(*actions)
 		if ca not in self.actions:
 			self.actions.append(ca)
 		return ca
+
+	def take(self, action: Action, target: Actor) -> Number:

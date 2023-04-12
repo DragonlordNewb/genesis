@@ -53,6 +53,13 @@ class Property:
 	def __invert__(self) -> Number:
 		return self.similarity(self)
 
+	@classmethod
+	def make(cls, name: str, value: any, leniency: Number=5, weight: Number=1) -> object:
+		if type(value) in [float, int]:
+			return ScalarProperty(name, value, leniency, weight)
+		elif type(value) in [str, list]:
+			return StringProperty(name, value, leniency, weight)
+
 class ScalarProperty(Property):
 	def similarity(self, other: Property) -> Number:
 		return normalizedGaussian(self.value, self.leniency)(other.value)
