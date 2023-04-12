@@ -1,7 +1,11 @@
 from x1 import ent
 from typing import Callable, Iterable, Union
+from warnings import warn
 
 Number = Union[int, float]
+
+class DirectiveOverrideWarning(Warning):
+	pass
 
 class Actor(ent.Entity):
 	def __init__(self, parent, *components: set[ent.Property]) -> None:
@@ -78,7 +82,7 @@ class Directive:
 
 		self.completed = False
 
-		self.actionsTaken: list[Action] = []
+		self.actionsTaken: list[tuple[Action, Actor]] = []
 
 	def __mod__(self, other: object) -> Number:
 		return self.ideal % other.ideal
@@ -91,21 +95,27 @@ class Directive:
 	def complete(self) -> None:
 		self.completed = True
 
-	def addAction(self, action: Action) -> None:
-		self.actionsTaken.append(action)
+	def addAction(self, action: Action, target: Actor) -> None:
+		self.actionsTaken.append((action, target))
 
 class InfiniteAbstractionCore:
 	def __init__(self, *basicActions: set[Action], directive: Directive=None) -> None:
 		self.actions = list(basicActions)
-		self.directives = [directive]
+		self.directive = directive
 		self.completedDirectives: list[Directive]
 
 	def assign(self, directive: Directive) -> None:
-		if directive not in self.directives:
-			self.directives.append(directive)
-
+		if not directive.completed:
+			warn("Changing directives without completion may cause abberant behavior.", DirectiveOverrideWarning)
+		self.directive = directive
+		
 	def completion(self) -> Number:
-		return sum([directive.completion() for directive in self.directives]) / len(self.directives)
+		value = self.directive.completion()
+		if value == 1:
+			self.directive.complete()
+			if self.directive not in self.completedDirectives:
+				self.completedDirectives.append(self.directive)
+		return value
 
 	def generateNewAction(self, *actions: set[Action]) -> CompoundAction:
 		ca = CompoundAction(*actions)
@@ -114,3 +124,9 @@ class InfiniteAbstractionCore:
 		return ca
 
 	def take(self, action: Action, target: Actor) -> Number:
+		before = self.completion()
+		self.directive.addAction(action, target)
+		action.take(target)
+		after = self.completion()
+		delta = after - before
+		
