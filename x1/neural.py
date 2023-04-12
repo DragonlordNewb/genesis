@@ -31,7 +31,24 @@ class TrainingDataset:
 
 		return training, testing
 
-class NeuralCell:
+class Axon:
+	def __init__(self, feedforwardTo: NeuralCell, backpropagateTo: NeuralCell) -> None:
+		self.feedforward = feedforwardTo
+		self.feedforward.inputAxons.append(self)
+		self.backpropagate = backpropagateTo
+		self.backpropagate.outputAxons.append(self)
+
+		self.weight = random()
+
+	def feedforward(self, value: Number) -> None:
+		self.feedforward.inputs.append(value * self.weight)
+
+	def backpropagate(self, error: Number) -> None:
+		self.backpropagate.error += error * self.weight
+
+# === FEEDFORWARD === #
+
+class FeedforwardNeuron:
 	def __init__(self) -> None:
 		self.inputAxons = []
 		self.outputAxons = []
@@ -60,50 +77,14 @@ class NeuralCell:
 		self.output = None
 		self.error = 0
 
-class Neuron(NeuralCell):
 	def computeOutput(self) -> Number:
 		return sigmoid(sum(self.inputs) + self.bias)
 
 	def computeError(self) -> Number:
 		return self.error
 
-class LSTM(NeuralCell):
-	def __init__(self, forgetThreshold: Number=1) -> None:
-		self.state = 0
-		self.forgetThreshold = forgetThreshold
-
-		NeuralCell.__init__(self)
-
-	def computeOutput(self) -> Number:
-		out = sigmoid(sum(self.inputs) + self.bias) + self.state
-		self.state = out
-		return out
-
-	def computeError(self) -> Number:
-		if self.error >= self.forgetThreshold:
-			self.state = 0
-
-		return self.error
-
-class Axon:
-	def __init__(self, feedforwardTo: NeuralCell, backpropagateTo: NeuralCell) -> None:
-		self.feedforward = feedforwardTo
-		self.feedforward.inputAxons.append(self)
-		self.backpropagate = backpropagateTo
-		self.backpropagate.outputAxons.append(self)
-
-		self.weight = random()
-
-	def feedforward(self, value: Number) -> None:
-		self.feedforward.inputs.append(value * self.weight)
-
-	def backpropagate(self, error: Number) -> None:
-		self.backpropagate.error += error * self.weight
-
-# === FEEDFORWARD === #
-
 class FeedforwardHiddenLayer:
-	def __init__(self, *neurons: set[NeuralCell]) -> None:
+	def __init__(self, *neurons: set[FeedforwardNeuron]) -> None:
 		self.neurons = list(neurons)
 		self.axons = []
 
@@ -206,7 +187,7 @@ class FeedforwardNeuralNetwork:
 
 		return self.output()
 
-	def learn(self, inputs: list[Number], outputs: list[Number]) -> Number:
+	def learn(self, inputs: list[Number], outputs: list[Number]) -> None:
 		prediction = self.predict(*inputs)
 
 		if len(output) != len(outputs):
@@ -216,7 +197,12 @@ class FeedforwardNeuralNetwork:
 		self.receiveErrors(*errors)
 		self.backpropagate()
 
-		return sum(errors)
-
-	def train(self, dataset: TrainingDataset, trainingFraction: float=0.8) -> list[Number]:
+	def train(self, dataset: TrainingDataset, trainingFraction: float=0.8) -> None:
 		training, testing = dataset.split(trainingFraction)
+
+        for inputs, outputs in training:
+            self.learn(inputs, outputs)
+
+# === RECURRENT === #
+
+class RecurrentNeuron:
