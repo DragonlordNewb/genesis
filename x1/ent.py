@@ -67,7 +67,7 @@ class Timestamp(ScalarProperty):
 
 class Entity:
 	def __init__(self, *properties: set[Property]) -> None:
-		self.properties = properties
+		self.properties = list(properties)
 		self.properties.sort(key=lambda prop: prop.name)
 		self.signature = set([prop.name for prop in self])
 		if "timestamp" in self:

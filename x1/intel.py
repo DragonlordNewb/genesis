@@ -397,7 +397,7 @@ class FeedforwardHiddenLayer(FeedforwardLayer):
 	pass
 
 class FeedforwardNeuralNetwork:
-	def __init__(self, *layers: set[Union[FeedforwardInputLayer, FeedforwardHiddenLayer FeedforwardOutputLayer]]) -> None:
+	def __init__(self, *layers: set[Union[FeedforwardInputLayer, FeedforwardHiddenLayer, FeedforwardOutputLayer]]) -> None:
 		self.layers = list(layers)
 		assert type(self[INPUT]) == FeedforwardInputLayer, "First layer must be an input layer."
 		assert type(self[OUTPUT]) == FeedforwardOutputLayer, "Last layer must be an output layer."
@@ -457,7 +457,7 @@ class Agent:
 			choice(self.entities).vary(magnitude)
 			count -= 1
 
-	def variants(self, variantCount: int=1, mutationCount: int=1 magnitude: Number=1) -> None:
+	def variants(self, variantCount: int=1, mutationCount: int=1, magnitude: Number=1) -> None:
 		variants = []
 		for _ in range(count):
 			variants.append(self.duplicate())
@@ -488,7 +488,7 @@ class SingleParentGeneticIntelligence:
 		return "<GeneticIntelligence>"
 
 	def __len__(self) -> int:
-		return len(self.[-1])
+		return len(self[-1])
 
 	def __iter__(self) -> Iterable:
 		return iter(self.generations)

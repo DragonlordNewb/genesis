@@ -1,5 +1,5 @@
 from x1 import ent
-from typing import Callable
+from typing import Callable, Iterable
 
 class Actor(ent.Entity):
 	def __init__(self, parent, *components: set[ent.Property]) -> None:
