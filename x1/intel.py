@@ -291,7 +291,9 @@ class CogniscentMarkovChain(MarkovChain):
 
 # === NEURAL NETWORKING === #
 
-from x1.neural import *
+from x1.neuro import *
+
+# === LANGUAGE MODELLING === #
 
 # === GENETIC ALGORITHMS === #
 
