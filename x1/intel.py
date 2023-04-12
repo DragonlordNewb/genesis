@@ -113,7 +113,7 @@ class UnivariateInertialOptimizer:
 		finalValue = self.emotion
 		dy = finalValue - initialValue
 		dx = self.inertia
-		differential = dy / dx
+		differential = (dy / dx) * sgn(dy)
 		self.inertia += differential
 		self.inertia *= 1 - self.resistance
 		return differential

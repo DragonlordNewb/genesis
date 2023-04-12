@@ -34,9 +34,11 @@ class TrainingDataset:
 class Axon:
 	def __init__(self, feedforwardTo: NeuralCell, backpropagateTo: NeuralCell) -> None:
 		self.feedforward = feedforwardTo
-		self.feedforward.inputAxons.append(self)
+        if self not in self.feedforward.inputAxons:
+		    self.feedforward.inputAxons.append(self)
 		self.backpropagate = backpropagateTo
-		self.backpropagate.outputAxons.append(self)
+        if self not in self.backpropagate.outputAxons:
+		    self.backpropagate.outputAxons.append(self)
 
 		self.weight = random()
 
@@ -46,7 +48,7 @@ class Axon:
 	def backpropagate(self, error: Number) -> None:
 		self.backpropagate.error += error * self.weight
 
-# === FEEDFORWARD === #
+# === NEURONS === #
 
 class FeedforwardNeuron:
 	def __init__(self) -> None:
@@ -60,13 +62,12 @@ class FeedforwardNeuron:
 
 		self.error: Number = 0
 
-	def feedforward(self) -> Number:
+	def feedforward(self) -> None:
 		self.output = self.computeOutput()
 		for axon in self.outputAxons:
 			axon.feedforward(self.output)
-		return self.output
 
-	def backpropagate(self) -> Number:
+	def backpropagate(self) -> None:
 		error = self.computeError()
 		for axon in self.inputAxons:
 			axon.backpropagate(error)
@@ -82,6 +83,87 @@ class FeedforwardNeuron:
 
 	def computeError(self) -> Number:
 		return self.error
+
+class SpikingFeedforwardNeuron(FeedforwardNeuron):
+    def __init__(self):
+        self.threshold = random()
+        self.bias = random()
+        self.error = 0
+
+        self.inputAxons = []
+        self.outputAxons = []
+
+        self.inputs = []
+        self.output: Number = None
+
+        self.potential = 0
+        
+        self.ran = True
+
+	def feedforward(self) -> None:
+        if self.threshold > self.potential:
+            return
+        self.ran = True
+        self.potential -= self.threshold
+		self.output = self.computeOutput()
+		for axon in self.outputAxons:
+			axon.feedforward(self.output)
+
+	def backpropagate(self) -> None:
+        if not self.ran:
+            return
+		error = self.computeError()
+		for axon in self.inputAxons:
+			axon.backpropagate(error)
+		self.bias /= error    
+
+class RecurrentNeuron:
+    def __init__(self, parent: object, id: str, *connections: set[str]) -> None:
+        self.parent = parent
+        self.id = id 
+
+        self.inputAxons = []
+		self.outputAxons = [Axon(feedforwardTo=parent[conn], backpropagateTo=self) for conn in connections]
+		
+		self.inputs = []
+		self.output: Number = None
+
+		self.bias = random()
+
+		self.error: Number = 0
+
+    def feedforward(self) -> None:
+		self.output = self.computeOutput()
+		for axon in self.outputAxons:
+			axon.feedforward(self.output)
+
+	def backpropagate(self) -> None:
+		error = self.computeError()
+		for axon in self.inputAxons:
+			axon.backpropagate(error)
+		self.bias /= error
+
+	def reset(self) -> None:
+		self.inputs = []
+		self.output = None
+		self.error = 0
+
+	def computeOutput(self) -> Number:
+		return sigmoid(sum(self.inputs) + self.bias)
+
+	def computeError(self) -> Number:
+		return self.error
+
+class RecurrentMemoryCell(RecurrentNeuron):
+    def reset(self) -> None:
+        return
+
+    def purge(self) -> None:
+		self.inputs = []
+		self.output = None
+		self.error = 0
+
+# === FEEDFORWARD === #
 
 class FeedforwardHiddenLayer:
 	def __init__(self, *neurons: set[FeedforwardNeuron]) -> None:
@@ -205,4 +287,59 @@ class FeedforwardNeuralNetwork:
 
 # === RECURRENT === #
 
-class RecurrentNeuron:
+class RecurrentNeuralNetwork:
+    def __init__(self, inputNeurons: list[RecurrentNeuron], outputNeurons: list[RecurrentNeuron], *neurons: set[RecurrentNeuron]) -> None:
+        self.neurons = list(neurons)
+        self.inputNeurons = inputNeurons
+        self.outputNeurons = outputNeurons
+
+        for neuron in self.inputNeurons:
+            self.neurons.append(neuron)
+        for neuron in self.outputNeurons:
+            self.neurons.append(neuron)
+
+    def __iter__(self) -> Iterable:
+        return iter(self.neurons)
+
+    def __reversed__(self) -> Iterable:
+        return reversed(self.neurons)
+
+    def __getitem__(self, id: str) -> RecurrentNeuron:
+        for neuron in self:
+            if neuron.id == id:
+                return neuron
+        raise KeyError("No neuron with ID \"" + str(id) + '\".')
+
+    def reset(self) -> None:
+        for neuron in self:
+            neuron.reset()
+
+    def purge(self) -> None:
+        for neuron in self:
+            if type(neuron) == RecurrentMemoryCell:
+                neuron.purge()
+
+    def startNeuralCycle(self, *inputs: set[Number]) -> None:
+        self.reset()
+        if len(inputs) != len(self.inputNeurons):
+            raise SyntaxError("Bad number of inputs.")
+        for neuron, value in zip(self.inputNeurons, inputs):
+            neuron.inputs.append(value)
+
+    def tick(self) -> None:
+        for neuron in self:
+            neuron.feedforward()
+    
+    def read(self) -> list[Number]:
+        return [neuron.computeOutput() for neuron in self.outputNeurons]
+
+    def stopNeuralCycle(self) -> list[Number]:
+        output = self.read()
+        self.reset()
+        self.purge()
+        return output
+
+# === CRYSTALLINE === #
+
+class NeuralCrystal:
+    def __init__(self, size: int=10):
