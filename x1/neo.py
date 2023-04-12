@@ -129,4 +129,6 @@ class InfiniteAbstractionCore:
 		action.take(target)
 		after = self.completion()
 		delta = after - before
+		action.sentiment += delta
+		return delta
 		
