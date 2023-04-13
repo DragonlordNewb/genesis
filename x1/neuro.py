@@ -32,7 +32,7 @@ class TrainingDataset:
 		return training, testing
 
 class Axon:
-	def __init__(self, feedforwardTo: NeuralCell, backpropagateTo: NeuralCell) -> None:
+	def __init__(self, feedforwardTo: object, backpropagateTo: object) -> None:
 		self.feedforward = feedforwardTo
 		if self not in self.feedforward.inputAxons:
 			self.feedforward.inputAxons.append(self)
