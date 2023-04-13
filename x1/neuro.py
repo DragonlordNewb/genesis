@@ -399,4 +399,14 @@ class NeuralCrystal:
 			self.backpropagate()
 
 	def learn(self, inputs: list[Number], outputs: list[Number], n: int=None) -> None:
-		
+		prediction = self.transform(*inputs, n=n)
+
+		errors = [predicted - expected for predicted, expected in zip(prediction, outputs)]
+
+		self.correct(*errors, n=n)
+
+	def train(self, dataset: TrainingDataset, trainingFraction: float=0.8) -> None:
+		training, testing = dataset.split(trainingFraction)
+
+		for inputs, outputs in training:
+			self.learn(inputs, outputs)
