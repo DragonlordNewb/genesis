@@ -585,6 +585,6 @@ class PartialPatternPatcher:
 
 	def isPatched(self, pattern: Pattern) -> bool:
 		for key in self.signature:
-			if key not in entity.signature:
+			if key not in pattern.signature:
 				return False
 		return True

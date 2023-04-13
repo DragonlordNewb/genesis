@@ -342,5 +342,61 @@ class RecurrentNeuralNetwork:
 # === CRYSTALLINE === #
 
 class NeuralCrystal:
-	def __init__(self, size: int=10):
-		pass
+	def __init__(self, size: int=10, n: int=1, neuronType: type=FeedforwardNeuron):
+		self.neurons = []
+		for _ in range(size):
+			self.neurons.append(neuronType())
+
+		self.axons = []
+		for neuron in self:
+			for otherNeuron in [n for n in self if n != neuron]:
+				self.axons.append(Axon(feedforwardTo=otherNeuron, backpropagateTo=neuron))
+
+		self.n = n
+
+	def __len__(self) -> int:
+		return len(self.neurons)
+
+	def __iter__(self) -> Iterable:
+		return iter(self.neurons)
+	
+	def receiveInputs(self, *inputs: set[Number]) -> None:
+		for neuron, value in zip(self, inputs):
+			neuron.inputs.append(value)
+	
+	def feedforward(self) -> None:
+		for neuron in self:
+			neuron.feedforward()
+
+	def receiveErrors(self, *errors: set[Number]) -> None:
+		for neuron, error in zip(self, errors):
+			neuron.error += error
+
+	def backpropagate(self) -> None:
+		for neuron in self:
+			neuron.backpropagate()
+	
+	def transform(self, *inputs: set[Number], n: int=None) -> list[Number]:
+		n = n or self.n
+		if len(inputs) != len(self):
+			raise SyntaxError("Must supply exactly one input per neuron.")
+		
+		self.receiveInputs(*inputs)
+
+		for _ in range(n):
+			self.feedforward()
+
+		return [neuron.computeOutput() for neuron in self]
+	
+	def correct(self, *errors: set[Number], n: int=None) -> None:
+		n = n or self.n
+		if len(errors) != len(self):
+			raise SyntaxError("Must supply exactly one input per neuron.")
+		
+		self.receiveErrors(*errors)
+
+		for _ in range(n):
+			self.backpropagate()
+
+	def learn(self, inputs: list[Number], outputs: list[Number], n: int=None) -> None:
+		
