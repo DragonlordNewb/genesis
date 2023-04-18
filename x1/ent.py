@@ -60,7 +60,7 @@ class Property:
 		elif type(value) in [str, list]:
 			return StringProperty(name, value, leniency, weight)
 
-class ScalarProperty(Property):
+class ScalarProperty(Property): # x1.ent.ScalarProperty("name", value (some int))
 	def similarity(self, other: Property) -> Number:
 		return normalizedGaussian(self.value, self.leniency)(other.value)
 
@@ -72,7 +72,7 @@ class Timestamp(ScalarProperty):
 	def __init__(self, t: Number, leniency: Number=5, weight: Number=100) -> None:
 		ScalarProperty.__init__(self, "timestamp", t, leniency, weight)
 
-class Entity:
+class Entity: # myentity = Entity(prop1, prop2, prop3, ...)
 	def __init__(self, *properties: set[Property]) -> None:
 		self.properties = list(properties)
 		self.properties.sort(key=lambda prop: prop.name)
@@ -112,6 +112,7 @@ class Entity:
 		return self.similarity(self)
 
 	def __mod__(self, other: object) -> Number:
+		# ent1 % ent2 = similarty
 		return self.similarity(other) / ~self
 
 	def similarity(self, other: object) -> Number:
@@ -222,7 +223,7 @@ class Chronology(Pattern):
 	def duplicate(self) -> object:
 		return Chronology(*self.iv)
 
-class Classification:
+class Classification: # myclass = x1.ent.Classification(myent1, myent2, ...)
 	def __init__(self, *objects: set[Union[Entity, Pattern, Chronology]], strictness: float=0.8, selfImprove: bool=False) -> None:
 		self.entities = [obj for obj in objects if type(obj) == Entity]
 		self.patterns = [obj for obj in objects if type(obj) == Pattern]
@@ -239,6 +240,7 @@ class Classification:
 		return len(self.objects)
 
 	def __contains__(self, obj: Union[Entity, Pattern, Chronology]) -> bool:
+		# newentity in myclass -> bool
 		for other in self._getObjectList(obj):
 			if obj % other >= self.strictness:
 				if self.selfImprove and obj not in self.objects:
@@ -279,7 +281,7 @@ class Classification:
 		else:
 			raise TypeError("Can't use object of type \"" + type(obj).__name__ + "\" with Classification.")
 
-class Classifier:
+class Classifier: # classif = x1.ent.Classifier(class1, class2, ...)
 	def __init__(self, *classifications: set[Classification], strictness: float=0.8, selfImprove: bool=False) -> None:
 		self.classifications = list(classifications)
 		
@@ -305,6 +307,7 @@ class Classifier:
 		return False
 
 	def __getitem__(self, obj: Union[Entity, Pattern, Chronology]) -> tuple[Classification, Union[Entity, Pattern, Chronology], float]:
+		# classif[newent] -> (Classification, Entity)
 		objectsByConfidence = {}
 		for classif in self:
 			bestMatch, confidence = classif[obj]
@@ -463,7 +466,7 @@ class SingleAxisAnalyzer:
 			raise RuntimeError("Internal error, check your arguments.")
 
 class PartialEntityPatcher:
-	def __init__(self, entities: set[Entity], strictness: float=-1) -> None:
+	def __init__(self, *entities: set[Entity], strictness: float=-1) -> None:
 		self.entities = list(entities)
 		self.signature = self.entities[0].signature
 		for entity in self:
@@ -588,3 +591,8 @@ class PartialPatternPatcher:
 			if key not in pattern.signature:
 				return False
 		return True
+
+Knife = Entity(
+	StringProperty("name", "Knife"),
+	ScalarProperty("damage", 5)
+)
